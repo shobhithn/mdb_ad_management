@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/shobhithn/mdb_ad_management
  * Update URI:        https://github.com/shobhithn/mdb_ad_management
  * Description:       MDB Ad Management is a powerful WordPress plugin designed to streamline the process of managing and displaying advertisements on your website. Whether you're running a blog, news site, or any content-heavy platform, this plugin allows you to effortlessly upload, manage, and display multiple ads with titles, images, and links.
- * Version:           2.0.1
+ * Version:           2.0.2
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            SHOBHITH N
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'MDB_ADS_VERSION', '2.0.1' );
+define( 'MDB_ADS_VERSION', '2.0.2' );
 define( 'MDB_ADS_DB_VERSION', '2' );
 define( 'MDB_ADS_FILE', __FILE__ );
 define( 'MDB_ADS_DIR', plugin_dir_path( __FILE__ ) );

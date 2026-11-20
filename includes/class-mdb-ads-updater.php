@@ -24,14 +24,16 @@ class MDB_Ads_Updater {
 		add_filter( 'plugins_api', array( __CLASS__, 'details' ), 10, 3 );
 		add_filter( 'upgrader_source_selection', array( __CLASS__, 'fix_folder_name' ), 10, 4 );
 
-		// "Check again" on Dashboard > Updates should see a release published a minute ago.
+		// "Check again" on Dashboard > Updates also forgets a recent failed lookup. Priority 0 so it
+		// runs before WordPress's own update check, which is hooked to the same action at priority 10.
 		add_action(
 			'load-update-core.php',
 			function () {
 				if ( isset( $_GET['force-check'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					delete_site_transient( self::CACHE_KEY );
 				}
-			}
+			},
+			0
 		);
 	}
 
@@ -56,7 +58,9 @@ class MDB_Ads_Updater {
 			return $update;
 		}
 
-		$release = self::latest_release();
+		// WordPress only gets here when it actually checks for updates (twice a day, or when
+		// the Plugins/Updates screens are opened), so ask GitHub fresh each time.
+		$release = self::latest_release( true );
 		if ( ! $release ) {
 			return $update;
 		}
@@ -124,14 +128,17 @@ class MDB_Ads_Updater {
 	}
 
 	/**
-	 * The latest published release, cached for 6 hours. A failed lookup (GitHub down, rate limit,
-	 * no release yet) is cached for an hour so it can never slow the site down.
+	 * The latest published release.
 	 *
+	 * A failed lookup (GitHub down, rate limit, no release yet) is remembered for an hour, so it
+	 * can never slow the site down. A successful one is kept for the "View details" popup.
+	 *
+	 * @param bool $fresh Ask GitHub even when a successful answer is saved.
 	 * @return array|null version, package, url, date, notes.
 	 */
-	private static function latest_release() {
+	private static function latest_release( $fresh = false ) {
 		$cached = get_site_transient( self::CACHE_KEY );
-		if ( is_array( $cached ) ) {
+		if ( is_array( $cached ) && ( ! $cached || ! $fresh ) ) {
 			return $cached ? $cached : null;
 		}
 
@@ -148,7 +155,7 @@ class MDB_Ads_Updater {
 			$release = self::parse_release( json_decode( wp_remote_retrieve_body( $response ), true ) );
 		}
 
-		set_site_transient( self::CACHE_KEY, $release ? $release : array(), $release ? 6 * HOUR_IN_SECONDS : HOUR_IN_SECONDS );
+		set_site_transient( self::CACHE_KEY, $release ? $release : array(), $release ? 12 * HOUR_IN_SECONDS : HOUR_IN_SECONDS );
 
 		return $release;
 	}
