@@ -311,6 +311,11 @@ class MDB_Ads_Admin {
 			);
 		}
 
+		// Statistics don't show on the site; everything else changes what visitors see.
+		if ( $ids && 'reset' !== $action ) {
+			self::add_notice( MDB_Ads_Cache::notice( MDB_Ads_Cache::purge() ), 'info' );
+		}
+
 		wp_safe_redirect( self::list_url() );
 		exit;
 	}
@@ -329,6 +334,7 @@ class MDB_Ads_Admin {
 			}
 
 			++$deleted;
+			MDB_Ads_Cache::unschedule( $id );
 
 			// The row is gone first, so the "still used by another ad" check no longer counts it.
 			if ( ! MDB_Ads_Images::delete( $ad->image_url ) ) {
@@ -611,7 +617,10 @@ class MDB_Ads_Admin {
 			self::add_notice( sprintf( __( 'The old image file could not be removed from the server, so delete it by hand: %s', 'mdb-ad-management' ), $ad->image_url ), 'warning' );
 		}
 
+		MDB_Ads_Cache::schedule( $id, $data['start_date'], $data['end_date'] );
+
 		self::add_notice( __( 'Ad updated.', 'mdb-ad-management' ) );
+		self::add_notice( MDB_Ads_Cache::notice( MDB_Ads_Cache::purge() ), 'info' );
 		self::redirect( $back );
 	}
 
@@ -735,7 +744,8 @@ class MDB_Ads_Admin {
 			$data['image_url'] = $url;
 			$data['status']    = 1;
 
-			if ( ! MDB_Ads_DB::insert( $data ) ) {
+			$new_id = MDB_Ads_DB::insert( $data );
+			if ( ! $new_id ) {
 				MDB_Ads_Images::delete( $url );
 				++$failed;
 				/* translators: %d: ad number in the form */
@@ -743,12 +753,14 @@ class MDB_Ads_Admin {
 				continue;
 			}
 
+			MDB_Ads_Cache::schedule( $new_id, $data['start_date'], $data['end_date'] );
 			++$added;
 		}
 
 		if ( $added ) {
 			/* translators: %s: number of ads */
 			self::add_notice( sprintf( _n( '%s ad added.', '%s ads added.', $added, 'mdb-ad-management' ), number_format_i18n( $added ) ) );
+			self::add_notice( MDB_Ads_Cache::notice( MDB_Ads_Cache::purge() ), 'info' );
 			self::redirect( self::list_url() );
 		}
 
