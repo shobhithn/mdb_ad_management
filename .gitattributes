@@ -1,0 +1,4 @@
+# Left out of the source zip GitHub builds for each release, which is what WordPress installs.
+/.gitattributes export-ignore
+/.gitignore     export-ignore
+/README.md      export-ignore
